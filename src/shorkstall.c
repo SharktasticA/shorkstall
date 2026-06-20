@@ -220,7 +220,7 @@ int install(const char *id, const char *name)
 
     // Install image path
     char installImg[PATH_MAX];
-    snprintf(installImg, PATH_MAX, "/root/shork-%s.img", id);
+    snprintf(installImg, PATH_MAX, "/root/%s.img", id);
 
     // Open install image to get its size
     FILE *img = fopen(installImg, "rb");
@@ -310,14 +310,14 @@ int install(const char *id, const char *name)
     return 1;
 }
 
-void showBuildReport(const char *name, const char *report)
+void showBuildReport(int distroInd, const char *reportPath)
 {
     char msgTitle[95];
-    snprintf(msgTitle, 95, "%s build report", name);
+    snprintf(msgTitle, 95, "%s build report", DISTROS[distroInd].name);
     printHeader(msgTitle);
 
     char msgBody[4096];
-    FILE *stream = fopen(report, "r");
+    FILE *stream = fopen(reportPath, "r");
     if (stream)
     {
         size_t bytesRead = fread(msgBody, 1, sizeof(msgBody) - 1, stream);
@@ -326,9 +326,9 @@ void showBuildReport(const char *name, const char *report)
     }
     else
     {
-        size_t extMsgLen = 48 + strlen(report);
+        size_t extMsgLen = 48 + strlen(reportPath);
         EXIT_MSG = malloc(extMsgLen);
-        snprintf(EXIT_MSG, extMsgLen, "ERROR: failed to load %s", report);
+        snprintf(EXIT_MSG, extMsgLen, "ERROR: failed to load %s", reportPath);
         exit(1);
     }
 
@@ -338,8 +338,24 @@ void showBuildReport(const char *name, const char *report)
 
 void showDistroActionsMenu(MenuItem distro)
 {
+    int distroInd = -1;
+    for (int i = 0; i < DISTROS_LEN; i++)
+    {
+        if (strcmp(DISTROS[i].id, distro.id) == 0)
+        {
+            distroInd = i;
+            break;
+        }
+    }
+
+    if (distroInd < 0)
+    {
+        EXIT_MSG = "ERROR: could not find selected distro";
+        exit(1);
+    }
+
     char reportPath[PATH_MAX];
-    snprintf(reportPath, PATH_MAX, "/root/shork-%s.txt", distro.id);
+    snprintf(reportPath, PATH_MAX, "/root/%s.txt", DISTROS[distroInd].id);
 
     MenuItem rawMenu[] = {
         { "install",    "Install",              "", NULL,   1                      },
@@ -366,7 +382,7 @@ void showDistroActionsMenu(MenuItem distro)
         {
             clearScreen();
             printHeader(distro.name);
-            printMenu(menu, menuSize, NULL, 1, TERM_SIZE.ws_col - 6, menuSize, 1, cursor, 1, cursorPrev);
+            printMenu(menu, menuSize, DISTROS[distroInd].desc, 1, TERM_SIZE.ws_col - 6, menuSize, 1, cursor, 1, cursorPrev);
             printFooter("[jk] Navigate [Enter] Select [q] Back");
         }
         else
@@ -375,7 +391,7 @@ void showDistroActionsMenu(MenuItem distro)
                 printf("\x1b[2;1H");
             else
                 printf("\x1b[3;1H");
-            printMenu(menu, menuSize, NULL, 1, TERM_SIZE.ws_col - 6, menuSize, 1, cursor, 1, cursorPrev);
+            printMenu(menu, menuSize, DISTROS[distroInd].desc, 1, TERM_SIZE.ws_col - 6, menuSize, 1, cursor, 1, cursorPrev);
         }
 
         NavInput input = getNavInput();
@@ -406,9 +422,9 @@ void showDistroActionsMenu(MenuItem distro)
                         return;
                 }
                 else if (strcmp(menu[cursor - 1].id, "min-reqs") == 0)
-                    showMinReqs(distro.id, distro.name);
+                    showMinReqs(distroInd);
                 else if (strcmp(menu[cursor - 1].id, "report") == 0)
-                    showBuildReport(distro.name, reportPath);
+                    showBuildReport(distroInd, reportPath);
                 fullRedraw = 1;
                 break;
 
@@ -457,12 +473,12 @@ void showMainMenu(void)
     }
 
     MenuItem rawMenu[] = {
-        { "readme",     "Read first",           "", showReadFirst,  1                                                                         },
-        { "486-def",    "SHORK 486 (Default)",  "", NULL,           fileExists("/root/shork-486-def.img") && distroPresent("shork-486-def")   },
-        { "486-off",    "SHORK 486 (Offline)",  "", NULL,           fileExists("/root/shork-486-off.img") && distroPresent("shork-486-off")   },
-        { "486-min",    "SHORK 486 (Minimal)",  "", NULL,           fileExists("/root/shork-486-min.img") && distroPresent("shork-486-min")   },
-        { "486-max",    "SHORK 486 (Maximal)",  "", NULL,           fileExists("/root/shork-486-max.img") && distroPresent("shork-486-max")   },
-        { "diskette",   "SHORK DISKETTE",       "", NULL,           fileExists("/root/shork-diskette.img") && distroPresent("shork-diskette") }
+        { "readme",             "Read first",           "", showReadFirst,  1                                                                         },
+        { "shork-486-def",      "SHORK 486 (Default)",  "", NULL,           fileExists("/root/shork-486-def.img") && distroPresent("shork-486-def")   },
+        { "shork-486-off",      "SHORK 486 (Offline)",  "", NULL,           fileExists("/root/shork-486-off.img") && distroPresent("shork-486-off")   },
+        { "shork-486-min",      "SHORK 486 (Minimal)",  "", NULL,           fileExists("/root/shork-486-min.img") && distroPresent("shork-486-min")   },
+        { "shork-486-max",      "SHORK 486 (Maximal)",  "", NULL,           fileExists("/root/shork-486-max.img") && distroPresent("shork-486-max")   },
+        { "shork-diskette",     "SHORK DISKETTE",       "", NULL,           fileExists("/root/shork-diskette.img") && distroPresent("shork-diskette") }
     };
     int rawMenuSize = sizeof(rawMenu) / sizeof(rawMenu[0]);
 
@@ -538,32 +554,16 @@ void showMainMenu(void)
     clearScreen();
 }
 
-void showMinReqs(const char *id, const char *name)
+void showMinReqs(int distroInd)
 {
-    char distroID[strlen(id) + 7];
-    snprintf(distroID, sizeof(distroID), "shork-%s", id);
+    char msgTitle[95];
+    snprintf(msgTitle, 95, "%s minimum requirements", DISTROS[distroInd].name);
 
-    int distroInd = -1;
-    for (int i = 0; i < DISTROS_LEN; i++)
-    {
-        if (strcmp(DISTROS[i].id, distroID) == 0)
-        {
-            distroInd = i;
-            break;
-        }
-    }
+    char msgBody[512];
+    snprintf(msgBody, 512, " * %s\n * %s\n * %s\n * %s\n * %s\n", DISTROS[distroInd].cpu, DISTROS[distroInd].ram, DISTROS[distroInd].storage, DISTROS[distroInd].gpu, DISTROS[distroInd].display);
 
-    if (distroInd >= 0)
-    {
-        char msgTitle[95];
-        snprintf(msgTitle, 95, "%s minimum requirements", name);
-
-        char msgBody[512];
-        snprintf(msgBody, 512, "* %s\n* %s\n* %s\n* %s\n* %s\n", DISTROS[distroInd].cpu, DISTROS[distroInd].ram, DISTROS[distroInd].storage, DISTROS[distroInd].gpu, DISTROS[distroInd].display);
-
-        int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
-        printTextScreen(msgTitle, msgBody, lines, 1);
-    }
+    int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
+    printTextScreen(msgTitle, msgBody, lines, 1);
 }
 
 void showReadFirst(void)
