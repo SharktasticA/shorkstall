@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <linux/fd.h>
+#include <linux/fs.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/limits.h>
@@ -56,8 +57,8 @@ int checkFloppyDrive(char* dev)
         }
         else
         {
-            char msgBody[72];
-            snprintf(msgBody, sizeof(msgBody), "There was an unidentified issue trying to access the floppy drive.");
+            char msgBody[86];
+            snprintf(msgBody, sizeof(msgBody), "There was an unidentified issue trying to access %s.", dev);
             int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
             printTextScreen(dev, msgBody, lines, 0);
             return -1;
@@ -72,8 +73,8 @@ int checkFloppyDrive(char* dev)
     if (ioctl(fd, FDGETDRVSTAT, &ds) < 0)
     {
         system("dmesg -n 4");
-        char msgBody[72];
-        snprintf(msgBody, sizeof(msgBody), "There was an unidentified issue trying to access the floppy drive.");
+        char msgBody[86];
+        snprintf(msgBody, sizeof(msgBody), "There was an unidentified issue trying to access %s.", dev);
         int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
         printTextScreen(dev, msgBody, lines, 0);
         close(fd);
@@ -112,6 +113,61 @@ int distroPresent(const char *id)
         }
     }
     return found;
+}
+
+/**
+ * @param imgSize Image size in bytes
+ * @param dev Target block device
+ * @return 1 if image fits; 0 if not; -1 if error
+ */
+int imageFitsOnBD(const char *name, long imgSize, char *dev)
+{
+    // Sanity check against image size
+    if (imgSize <= 0)
+    {
+        char msgBody[256];
+        snprintf(msgBody, sizeof(msgBody), "The %s image may be corrupted.", name);
+        int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
+        printTextScreen(dev, msgBody, lines, 0);
+        return -1;
+    }
+
+    int fd = open(dev, O_RDONLY);
+    if (fd == -1)
+    {
+        char msgBody[86];
+        snprintf(msgBody, sizeof(msgBody), "There was an unidentified issue trying to access %s.", dev);
+        int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
+        printTextScreen(dev, msgBody, lines, 0);
+        return -1;
+    }
+
+    long long devSize = 0;
+    if (ioctl(fd, BLKGETSIZE64, &devSize) == -1)
+    {
+        close(fd);
+        char msgBody[86];
+        snprintf(msgBody, sizeof(msgBody), "Unable to determine the size of %s.", dev);
+        int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
+        printTextScreen(dev, msgBody, lines, 0);
+        return -1;
+    }
+    close(fd);
+
+    if (imgSize > devSize)
+    {
+        const char *devType = (strstr(dev, "/dev/fd") != NULL) ? "diskette" : "disk";
+        long devSizeMiB = devSize / (1024 * 1024);
+        long imgSizeMiB = imgSize / (1024 * 1024);
+
+        char msgBody[512];
+        snprintf(msgBody, sizeof(msgBody), "The target %s (%ldMiB) is too small for %s (%ldMiB).\n", devType, devSizeMiB, name, imgSizeMiB);
+        int lines = formatNewLines(msgBody, TERM_SIZE.ws_col, NULL, 0);
+        printTextScreen(dev, msgBody, lines, 0);
+        return 0;
+    }
+
+    return 1;
 }
 
 /**
@@ -157,7 +213,7 @@ int install(const char *id, const char *name)
         snprintf(targetBD, 10, "/dev/sd%c", sd);
 
         char prompt[512];
-        snprintf(prompt, sizeof(prompt), "Are you sure you want to install %s to $s? DOING SO WILL ERASE EVERYTHING ON THIS DRIVE, so please double-check you selected the correct disk you wish to install to, and backup any potential data on it before proceeding. Choosing \"Yes\" will begin the install process immediately.", name, targetBD);
+        snprintf(prompt, sizeof(prompt), "Are you sure you want to install %s to %s? DOING SO WILL ERASE EVERYTHING ON THIS DRIVE, so please double-check you selected the correct disk you wish to install to, and backup any potential data on it before proceeding. Choosing \"Yes\" will begin the install process immediately.", name, targetBD);
         if (printYesNoScreen(title, prompt) != 1)
             return 0;
     }
@@ -177,7 +233,12 @@ int install(const char *id, const char *name)
     }
     fseek(img, 0, SEEK_END);
     long imgSize = ftell(img);
+    rewind(img);
     fclose(img);
+
+    // Check image will fit on target
+    if (imageFitsOnBD(name, imgSize, targetBD) != 1)
+        return 0;
 
     // Temporary file for tracking progress (status=progress doesn't exist with
     // BusyBox's dd)
@@ -206,8 +267,11 @@ int install(const char *id, const char *name)
         exit(1);
     }
 
+    clearScreen();
+    printHeader(title);
+    printFooter("Please wait - do not turn off your computer");
+
     // Poll progress until dd finishes
-    char progressMsg[256];
     while (kill(ddPid, 0) == 0)
     {
         kill(ddPid, SIGUSR1);
@@ -224,10 +288,13 @@ int install(const char *id, const char *name)
 
             if (lastLine[0])
             {
-                clearScreen();
-                printHeader(title);
-                printf("%s\n", lastLine);
-                printFooter("Please wait");
+                lastLine[strcspn(lastLine, "\n")] = '\0';
+
+                if (COL_ENABLED)
+                    printf("\033[2;1H%s\033[K", lastLine);
+                else 
+                    printf("\033[3;1H%s\033[K", lastLine);
+                fflush(stdout);
             }
         }
     }

@@ -49,6 +49,14 @@ static const Distro DISTROS[] = {
         "Monitor: VGA (640x480) or higher"
     },
     {
+        "shork-486-max",
+        "Processor: Intel 486SX or compatible (no FPU required)",
+        "Memory: 24MiB minimum/32MiB recommended",
+        "Disk: ~440MiB",
+        "Graphics: IBM VGA or compatible",
+        "Monitor: VGA (640x480) or higher"
+    },
+    {
         "shork-diskette",
         "Processor: Intel 486SX or compatible (no FPU required)",
         "Memory: 16MiB minimum/24MiB recommended",
@@ -63,6 +71,7 @@ static const int DISTROS_LEN = sizeof(DISTROS) / sizeof(DISTROS[0]);
 
 int checkFloppyDrive(char*);
 int distroPresent(const char*);
+int imageFitsOnBD(const char*, long, char*);
 int install(const char*, const char*);
 void showBuildReport(const char*, const char*);
 void showDistroActionsMenu(MenuItem);

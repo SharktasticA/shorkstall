@@ -2,7 +2,8 @@
     ######################################################
     ##                  SHORK UTILITY                   ##
     ######################################################
-    ## An interactive menu system for SHORK UTILITIES   ##
+    ## An interactive menu system for SHORK UTILITIES & ##
+    ## SHORK ENTERTAINMENT                              ##
     ######################################################
     ## Licence: GNU GENERAL PUBLIC LICENSE Version 3    ##
     ######################################################

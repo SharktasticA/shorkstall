@@ -1,9 +1,9 @@
 /*
     ######################################################
-    ##            SHORK UTILITY - SHORKSTALL            ##
+    ##                  SHORK UTILITY                   ##
     ######################################################
-    ## General, utility functions to be used throughout ##
-    ## SHORKSET                                         ##
+    ## General, utility functions for SHORK Utilities & ##
+    ## SHORK ENTERTAINMENT                              ##
     ######################################################
     ## Licence: GNU GENERAL PUBLIC LICENSE Version 3    ##
     ######################################################
