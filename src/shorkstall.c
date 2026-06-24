@@ -466,12 +466,6 @@ void showMainMenu(void)
 {
     setupMenuSys();
 
-    if (TERM_SIZE.ws_col < 40 || TERM_SIZE.ws_row < 10)
-    {
-        EXIT_MSG = "ERROR: terminal size too small (must be 40x10 or larger)\n";
-        exit(1);
-    }
-
     MenuItem rawMenu[] = {
         { "readme",             "Read first",           "", showReadFirst,  1                                                                         },
         { "shork-486-def",      "SHORK 486 (Default)",  "", NULL,           fileExists("/root/shork-486-def.img") && distroPresent("shork-486-def")   },

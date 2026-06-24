@@ -384,6 +384,26 @@ float fSqrt(float x)
     return result;
 }
 
+/** 
+ * Returns the full path to the directory this program is stored in.
+ * @return Full path the binary is stored in
+ */
+char *getBinDir(void)
+{
+    // Get binary's full path
+    static char binDir[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", binDir, sizeof(binDir) - 1);
+    if (len <= 0) return NULL;
+    binDir[len] = '\0';
+
+    // Remove filename from path
+    char *slash = strrchr(binDir, '/');
+    if (!slash) return NULL;
+    *(slash + 1) = '\0';
+
+    return binDir;
+}
+
 /**
  * Gets the parent process ID (PPID) and name of a given process ID (PID).
  * @param pid The input PID
@@ -527,6 +547,43 @@ int iSqrt(int x)
     }
 
     return result;
+}
+
+/**
+ * Parses a line taken from a CSV list into separate fields.
+ * @param line Raw line from CSV file to be processed
+ * @param out Array of separated fields
+ * @param maxFields Max number of fields to look for
+ * @return Number of fields detected
+ */
+int loadCSVLine(char *line, char *out[], int maxFields)
+{
+    int i = 0;
+
+    while (*line && i < maxFields)
+    {
+        out[i++] = line;
+        int inQuotes = 0;
+
+        while (*line)
+        {
+            if (*line == '"')
+            {
+                inQuotes = !inQuotes;
+                if (line[1] == '"') line++;
+            }
+            else if (*line == ',' && !inQuotes)
+            {
+                *line = '\0';
+                line++;
+                break;
+            }
+
+            line++;
+        }
+    }
+
+    return i;
 }
 
 int natCmp(const void *a, const void *b)

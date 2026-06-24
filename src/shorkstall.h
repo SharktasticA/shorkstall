@@ -70,7 +70,7 @@ static const Distro DISTROS[] = {
         "SHORK 486 proper is the main version of the SHORK 486 Operating System, designed to be installed on a hard or solid-state disk. The \"maximal\" variant includes all optional software and drivers, so it can be used on systems newer than 486/586.",
         "Processor: Intel 486SX or compatible (no FPU required)",
         "Memory: 24MiB minimum/32MiB recommended",
-        "Disk: ~440MiB",
+        "Disk: ~400MiB",
         "Graphics: IBM VGA or compatible",
         "Monitor: VGA (640x480) or higher"
     },

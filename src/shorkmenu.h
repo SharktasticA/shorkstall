@@ -53,6 +53,7 @@ extern char *COL_FOR_CODE;
 extern char *COL_FOR_CURSOR;
 extern char *COL_FOR_HEADING;
 extern char *COL_FOR_OL;
+extern char *COL_FOR_SHORKUTIL;
 extern int COMPACT;
 extern char CURSOR_CHAR;
 extern char *EXIT_MSG;

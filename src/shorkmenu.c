@@ -35,6 +35,7 @@ char *COL_FOR_CODE = COL_FOR_BOLD_RED;
 char *COL_FOR_CURSOR = COL_FOR_BOLD_CYAN;
 char *COL_FOR_HEADING = COL_FOR_BOLD_CYAN;
 char *COL_FOR_OL = COL_FOR_GREEN;
+char *COL_FOR_SHORKUTIL = COL_FOR_BOLD_MAGENTA;
 int COMPACT = 0;
 char CURSOR_CHAR = '*';
 char *EXIT_MSG = NULL;
@@ -698,6 +699,12 @@ void setupMenuSys(void)
 void setupViewport(void)
 {
     TERM_SIZE = getTerminalSize();
+    if (TERM_SIZE.ws_col < 40 || TERM_SIZE.ws_row < 10)
+    {
+        EXIT_MSG = "ERROR: terminal size too small (must be 40x10 or larger)\n";
+        exit(1);
+    }
+
     if (COL_ENABLED)
     {
         BASE_ROW = 2;

@@ -13,7 +13,7 @@
 
 
 
-static const char *VERSION = "0.1-wip";
+static const char *VERSION = "1.0-pt1";
 
 
 
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf("ERROR: unrecognised option \"%s\"\n", argv[i]);
-            return 1;
+            showHelp();
+            return 0;
         }
     }
 
